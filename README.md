@@ -90,9 +90,22 @@ Configuration of the project needs to be defined in `config`. Please use the `de
 [![Locations of cities with footage in dataset](figures/map.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/map.html)
 The 11 countries with dashcam footage included in analysis on the political map (coloured by continent). Black dots show the cities included.
 
+[![Total time of footage over number of detected pedestrians](figures/scatter_total_time-person.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/scatter_total_time-person.html)
+Total time of footage over number of detected pedestrians.
+
+### Relationship between computed and statistical metrics
+[![Speed of crossing over crossing decision time](figures/scatter_speed_crossing_avg-time_crossing_avg.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/scatter_speed_crossing_avg-time_crossing_avg.html)
+Mean speed of crossing (in m/s) over Mean time to start crossing (in s) (in s).
+
 ### Correlation matrices
 [![Correlation matrix based on average speed and time to start cross](figures/correlation_matrix_heatmap_averaged.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/correlation_matrix_heatmap_averaged.html)
 Correlation matrix.
+
+[![Correlation matrix at daytime](figures/correlation_matrix_heatmap_day.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-national/blob/main/figures/correlation_matrix_heatmap_day.html)
+Correlation matrix at daytime.
+
+[![Correlation matrix at night time](figures/correlation_matrix_heatmap_night.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-national/blob/main/figures/correlation_matrix_heatmap_night.html)
+Correlation matrix at night time.
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.

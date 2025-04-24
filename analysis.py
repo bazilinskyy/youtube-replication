@@ -71,7 +71,7 @@ class Analysis():
         """
 
         dfs = {}
-        logger.info("reading csv files.")
+        logger.info("Reading csv files.")
         
         for folder_path in folder_paths:
             if not os.path.exists(folder_path):
@@ -86,12 +86,12 @@ class Analysis():
                         df = pd.read_csv(file_path)
                         filename = os.path.splitext(file)[0]
                         key = filename  # includes both video id and suffix
-                        dfs[key] = df
                         video_id, start_index = key.rsplit("_", 1)  # split to extract id and index
                         video_city_id = Analysis.find_city_id(df_mapping, video_id, int(start_index))
-                        if df_mapping.loc[df_mapping["id"] == video_city_id, "country"].empty:
-                            logger.debug(f"{video_id} with start {start_index} skipped as it is not from included countries.")
-                            continue                       
+                        if not video_city_id:
+                            logger.debug(f"{video_id} with start {start_index} skipped as it is not from included countries.")  # noqa: E501
+                            continue
+                        dfs[key] = df                       
                     except Exception as e:
                         logger.error(f"Failed to read {file_path}: {e}.")
 
@@ -1190,7 +1190,10 @@ class Analysis():
                                                                             0) + count
                     else:
                         duration_[f'{country}_{condition}'] = count
-                    info[f'{country}_{condition}'] = new_count / duration_.get(f'{country}_{condition}', 0)
+                    try:
+                        info[f'{country}_{condition}'] = new_count / duration_.get(f'{country}_{condition}', 0)
+                    except ZeroDivisionError:
+                        info[f'{country}_{condition}'] = 0
                     continue
                 else:
                     info[f'{country}_{condition}'] = count_
@@ -3759,12 +3762,15 @@ if __name__ == "__main__":
 
         for key, value in tqdm(dfs.items(), total=len(dfs)):
             # Extract information for the csv file from mapping
-            video_id, start_index = key.rsplit("_", 1)  # split to extract id and index
-            video_city_id = Analysis.find_city_id(df_mapping, video_id, int(start_index))
-            video_city = df_mapping.loc[df_mapping["id"] == video_city_id, "city"].values[0]  # type:ignore
-            video_state = df_mapping.loc[df_mapping["id"] == video_city_id, "state"].values[0]  # type:ignore
-            video_country = df_mapping.loc[df_mapping["id"] == video_city_id, "country"].values[0]  # type:ignore
-            logger.debug(f"Analysing data from {key} from {video_city}, {video_state}, {video_country}.")
+            try:
+                video_id, start_index = key.rsplit("_", 1)  # split to extract id and index
+                video_city_id = Analysis.find_city_id(df_mapping, video_id, int(start_index))
+                video_city = df_mapping.loc[df_mapping["id"] == video_city_id, "city"].values[0]  # type:ignore
+                video_state = df_mapping.loc[df_mapping["id"] == video_city_id, "state"].values[0]  # type:ignore
+                video_country = df_mapping.loc[df_mapping["id"] == video_city_id, "country"].values[0]  # type:ignore
+                logger.debug(f"Analysing data from {key} from {video_city}, {video_state}, {video_country}.")
+            except IndexError:
+                continue
 
             # Get the number of number and unique id of the object crossing the road
             count, ids = Analysis.pedestrian_crossing(dfs[key], 0.45, 0.55, 0)
@@ -4027,7 +4033,7 @@ if __name__ == "__main__":
                      legend_title="",
                      legend_x=0.01,
                      legend_y=1.0,
-                     label_distance_factor=0.5,
+                     label_distance_factor=0.1,
                      marginal_x=None,  # type: ignore
                      marginal_y=None)  # type: ignore
 
@@ -4051,7 +4057,7 @@ if __name__ == "__main__":
                      legend_title="",
                      legend_x=0.87,
                      legend_y=1.0,
-                     label_distance_factor=0.5,
+                     label_distance_factor=0.1,
                      marginal_x=None,  # type: ignore
                      marginal_y=None)  # type: ignore
 
