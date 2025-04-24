@@ -87,6 +87,11 @@ class Analysis():
                         filename = os.path.splitext(file)[0]
                         key = filename  # includes both video id and suffix
                         dfs[key] = df
+                        video_id, start_index = key.rsplit("_", 1)  # split to extract id and index
+                        video_city_id = Analysis.find_city_id(df_mapping, video_id, int(start_index))
+                        if df_mapping.loc[df_mapping["id"] == video_city_id, "country"].empty:
+                            logger.debug(f"{video_id} with start {start_index} skipped as it is not from included countries.")
+                            continue                       
                     except Exception as e:
                         logger.error(f"Failed to read {file_path}: {e}.")
 
@@ -3160,7 +3165,6 @@ class Analysis():
                 else:
                     row_data["avg_day_night_time"] = np.nan  # Handle empty or missing arrays
 
-            print(row_data)
             # Append the row data for the current country
             data_rows.append(row_data)
 
@@ -3229,126 +3233,126 @@ class Analysis():
 
         Analysis.save_plotly_figure(fig, "correlation_matrix_heatmap_averaged", save_final=True)
 
-        # Continent Wise
+        # # Continent Wise
 
-        # Initialize a list to store rows of data (one row per country)
-        data_rows = []
+        # # Initialize a list to store rows of data (one row per country)
+        # data_rows = []
 
-        # Assuming `conditions` is a list of conditions you are working with
-        conditions = ['0', '1']  # Modify this list to include all conditions you have (e.g., '0', '1', etc.)
-        unique_continents = df_mapping['continent'].unique()
+        # # Assuming `conditions` is a list of conditions you are working with
+        # conditions = ['0', '1']  # Modify this list to include all conditions you have (e.g., '0', '1', etc.)
+        # unique_continents = df_mapping['continent'].unique()
 
-        # Iterate over each country and condition
-        for country in final_dict:
-            # Initialize a dictionary to store the values for the current row
-            row_data = {}
+        # # Iterate over each country and condition
+        # for country in final_dict:
+        #     # Initialize a dictionary to store the values for the current row
+        #     row_data = {}
 
-            # For each condition
-            for condition in conditions:
-                # For each variable (exclude avg_speed and avg_time)
-                for var in ['ped_cross_city', 'person_city', 'bicycle_city', 'car_city', 'motorcycle_city', 'bus_city',
-                            'truck_city', 'cross_evnt_city', 'vehicle_city', 'cellphone_city', 'trf_sign_city',
-                            'traffic_mortality', 'literacy_rate', 'continent', 'gini', 'traffic_index']:
-                    # Populate each variable in the row_data dictionary
-                    row_data[f"{var}_{condition}"] = final_dict[country].get(f"{var}_{condition}", 0)
+        #     # For each condition
+        #     for condition in conditions:
+        #         # For each variable (exclude avg_speed and avg_time)
+        #         for var in ['ped_cross_city', 'person_city', 'bicycle_city', 'car_city', 'motorcycle_city', 'bus_city',
+        #                     'truck_city', 'cross_evnt_city', 'vehicle_city', 'cellphone_city', 'trf_sign_city',
+        #                     'traffic_mortality', 'literacy_rate', 'continent', 'gini', 'traffic_index']:
+        #             # Populate each variable in the row_data dictionary
+        #             row_data[f"{var}_{condition}"] = final_dict[country].get(f"{var}_{condition}", 0)
 
-                # Calculate average of speed_val and time_val (assumed to be arrays)
-                speed_vals = final_dict[country].get("avg_day_night_speed", [])
-                time_vals = final_dict[country].get("avg_day_night_time", [])
+        #         # Calculate average of speed_val and time_val (assumed to be arrays)
+        #         speed_vals = final_dict[country].get("avg_day_night_speed", [])
+        #         time_vals = final_dict[country].get("avg_day_night_time", [])
 
-                if speed_vals:  # Avoid division by zero or empty arrays
-                    row_data["avg_day_night_speed"] = np.mean(speed_vals)
-                else:
-                    row_data["avg_day_night_speed"] = np.nan  # Handle empty or missing arrays
+        #         if speed_vals:  # Avoid division by zero or empty arrays
+        #             row_data["avg_day_night_speed"] = np.mean(speed_vals)
+        #         else:
+        #             row_data["avg_day_night_speed"] = np.nan  # Handle empty or missing arrays
 
-                if time_vals:
-                    row_data["avg_day_night_time"] = np.mean(time_vals)
-                else:
-                    row_data["avg_day_night_time"] = np.nan  # Handle empty or missing arrays
+        #         if time_vals:
+        #             row_data["avg_day_night_time"] = np.mean(time_vals)
+        #         else:
+        #             row_data["avg_day_night_time"] = np.nan  # Handle empty or missing arrays
 
-            # Append the row data for the current country
-            data_rows.append(row_data)
+        #     # Append the row data for the current country
+        #     data_rows.append(row_data)
 
-        # Convert the data into a pandas DataFrame
-        df = pd.DataFrame(data_rows)
+        # # Convert the data into a pandas DataFrame
+        # df = pd.DataFrame(data_rows)
 
-        for continents in unique_continents:
-            filtered_df = df[(df['continent_0'] == continents) | (df['continent_1'] == continents)]
-            # Create a new DataFrame to average the columns across conditions
-            agg_df = pd.DataFrame()
+        # for continents in unique_continents:
+        #     filtered_df = df[(df['continent_0'] == continents) | (df['continent_1'] == continents)]
+        #     # Create a new DataFrame to average the columns across conditions
+        #     agg_df = pd.DataFrame()
 
-            # Define known conditions (from earlier)
-            conditions = ['0', '1']
+        #     # Define known conditions (from earlier)
+        #     conditions = ['0', '1']
 
-            for col in filtered_df.columns:
-                # Check if the column ends with a known condition
-                if any(col.endswith(f"_{cond}") for cond in conditions):
-                    feature_name = "_".join(col.split("_")[:-1])
-                    # Skip columns named "continent_0" or "continent_1"
-                    if "continent" in feature_name:
-                        continue
-                    if feature_name not in agg_df.columns:
-                        condition_cols = [c for c in filtered_df.columns if c.startswith(feature_name + "_")]
-                        if all(pd.api.types.is_numeric_dtype(filtered_df[c]) for c in condition_cols):
-                            agg_df[feature_name] = filtered_df[condition_cols].mean(axis=1)
-                        else:
-                            print(f"Skipping non-numeric feature: {feature_name}")
+        #     for col in filtered_df.columns:
+        #         # Check if the column ends with a known condition
+        #         if any(col.endswith(f"_{cond}") for cond in conditions):
+        #             feature_name = "_".join(col.split("_")[:-1])
+        #             # Skip columns named "continent_0" or "continent_1"
+        #             if "continent" in feature_name:
+        #                 continue
+        #             if feature_name not in agg_df.columns:
+        #                 condition_cols = [c for c in filtered_df.columns if c.startswith(feature_name + "_")]
+        #                 if all(pd.api.types.is_numeric_dtype(filtered_df[c]) for c in condition_cols):
+        #                     agg_df[feature_name] = filtered_df[condition_cols].mean(axis=1)
+        #                 else:
+        #                     print(f"Skipping non-numeric feature: {feature_name}")
 
-                else:
-                    agg_df[col] = filtered_df[col]
+        #         else:
+        #             agg_df[col] = filtered_df[col]
 
-                # Create a new column by averaging values across conditions for the same feature
-                if feature_name not in agg_df.columns:
-                    # Select the columns for this feature across all conditions
-                    condition_cols = [c for c in filtered_df.columns if feature_name in c]
-                    agg_df[feature_name] = filtered_df[condition_cols].mean(axis=1)
+        #         # Create a new column by averaging values across conditions for the same feature
+        #         if feature_name not in agg_df.columns:
+        #             # Select the columns for this feature across all conditions
+        #             condition_cols = [c for c in filtered_df.columns if feature_name in c]
+        #             agg_df[feature_name] = filtered_df[condition_cols].mean(axis=1)
 
-            # Compute the correlation matrix on the aggregated DataFrame
-            corr_matrix_avg = agg_df.corr(method='spearman')
+        #     # Compute the correlation matrix on the aggregated DataFrame
+        #     corr_matrix_avg = agg_df.corr(method='spearman')
 
-            # Rename the variables in the correlation matrix (example: renaming keys)
-            rename_dict_3 = {
-                'avg_day_night_speed': 'Crossing speed', "avg_day_night_time": 'Crossing decision time',
-                'ped_cross_city': 'Crossing', 'person_city': 'Detected persons',
-                'bicycle_city': 'Detected bicycles', 'car_city': 'Detected cars',
-                'motorcycle_city': 'Detected motorcycles', 'bus_city': 'Detected bus',
-                'truck_city': 'Detected truck', 'cross_evnt_city': 'Crossing without traffic light',
-                'vehicle_city': 'Detected total number of motor vehicle', 'cellphone_city': 'Detected cellphone',
-                'trf_sign_city': 'Detected traffic signs',
-                'traffic_mortality': 'Traffic mortality', 'literacy_rate': 'Literacy rate', 'gini': 'Gini coefficient',
-                'traffic_index': 'Traffic Index'
-                }
+        #     # Rename the variables in the correlation matrix (example: renaming keys)
+        #     rename_dict_3 = {
+        #         'avg_day_night_speed': 'Crossing speed', "avg_day_night_time": 'Crossing decision time',
+        #         'ped_cross_city': 'Crossing', 'person_city': 'Detected persons',
+        #         'bicycle_city': 'Detected bicycles', 'car_city': 'Detected cars',
+        #         'motorcycle_city': 'Detected motorcycles', 'bus_city': 'Detected bus',
+        #         'truck_city': 'Detected truck', 'cross_evnt_city': 'Crossing without traffic light',
+        #         'vehicle_city': 'Detected total number of motor vehicle', 'cellphone_city': 'Detected cellphone',
+        #         'trf_sign_city': 'Detected traffic signs',
+        #         'traffic_mortality': 'Traffic mortality', 'literacy_rate': 'Literacy rate', 'gini': 'Gini coefficient',
+        #         'traffic_index': 'Traffic Index'
+        #         }
 
-            corr_matrix_avg = corr_matrix_avg.rename(columns=rename_dict_3, index=rename_dict_3)
+        #     corr_matrix_avg = corr_matrix_avg.rename(columns=rename_dict_3, index=rename_dict_3)
 
-            # Generate the heatmap using Plotly
-            fig = px.imshow(corr_matrix_avg, text_auto=".2f",  # Display correlation values on heatmap  # type: ignore
-                            color_continuous_scale='RdBu',  # Color scale (you can customize this)
-                            aspect="auto",  # Automatically adjust aspect ratio
-                            # title=f"Correlation matrix heatmap {continents}"  # Title of the heatmap
-                            )
+        #     # Generate the heatmap using Plotly
+        #     fig = px.imshow(corr_matrix_avg, text_auto=".2f",  # Display correlation values on heatmap  # type: ignore
+        #                     color_continuous_scale='RdBu',  # Color scale (you can customize this)
+        #                     aspect="auto",  # Automatically adjust aspect ratio
+        #                     # title=f"Correlation matrix heatmap {continents}"  # Title of the heatmap
+        #                     )
 
-            fig.update_layout(coloraxis_showscale=False)
+        #     fig.update_layout(coloraxis_showscale=False)
 
-            # update font family
-            fig.update_layout(font=dict(family=common.get_configs('font_family')))
+        #     # update font family
+        #     fig.update_layout(font=dict(family=common.get_configs('font_family')))
 
-            # use value from config file
-            fig.update_layout(font=dict(size=common.get_configs('font_size')))
+        #     # use value from config file
+        #     fig.update_layout(font=dict(size=common.get_configs('font_size')))
 
-            # Update text font size inside heatmap
-            fig.update_traces(textfont_size=14)
-            fig.update_xaxes(tickangle=45, tickfont=dict(size=18))
-            fig.update_yaxes(tickangle=0, tickfont=dict(size=18))
+        #     # Update text font size inside heatmap
+        #     fig.update_traces(textfont_size=14)
+        #     fig.update_xaxes(tickangle=45, tickfont=dict(size=18))
+        #     fig.update_yaxes(tickangle=0, tickfont=dict(size=18))
 
-            # save file to local output folder
-            if save_file:
-                # Final adjustments and display
-                fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
-                Analysis.save_plotly_figure(fig, f"correlation_matrix_heatmap_{continents}", save_final=True)
-            # open it in localhost instead
-            else:
-                fig.show()
+        #     # save file to local output folder
+        #     if save_file:
+        #         # Final adjustments and display
+        #         fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
+        #         Analysis.save_plotly_figure(fig, f"correlation_matrix_heatmap_{continents}", save_final=True)
+        #     # open it in localhost instead
+        #     else:
+        #         fig.show()
 
     @staticmethod
     def iso2_to_flag(iso2):
@@ -3704,12 +3708,17 @@ if __name__ == "__main__":
     else:
         # Stores the mapping file
         df_mapping = pd.read_csv(common.get_configs("mapping"))
+        
+        # limit countries
+        countries_include = common.get_configs("countries_analyse")
+        df_mapping = df_mapping[df_mapping["iso3"].isin(common.get_configs("countries_analyse"))]
 
         pedestrian_crossing_count, data = {}, {}
         person_counter, bicycle_counter, car_counter, motorcycle_counter = 0, 0, 0, 0
         bus_counter, truck_counter, cellphone_counter, traffic_light_counter, stop_sign_counter = 0, 0, 0, 0, 0
 
         total_duration = Analysis.calculate_total_seconds(df_mapping)
+        logger.info(f"Included countries: {countries_include}")
         logger.info(f"Duration of videos in seconds: {total_duration}, in minutes: {total_duration/60:.2f}, in " +
                     f"hours: {total_duration/60/60:.2f}.")
         logger.info("Total number of videos: {}.", Analysis.calculate_total_videos(df_mapping))
@@ -3749,7 +3758,7 @@ if __name__ == "__main__":
         logger.info("Analysing data.")
 
         for key, value in tqdm(dfs.items(), total=len(dfs)):
-            # extract information for the csv file from mapping
+            # Extract information for the csv file from mapping
             video_id, start_index = key.rsplit("_", 1)  # split to extract id and index
             video_city_id = Analysis.find_city_id(df_mapping, video_id, int(start_index))
             video_city = df_mapping.loc[df_mapping["id"] == video_city_id, "city"].values[0]  # type:ignore
@@ -4002,49 +4011,49 @@ if __name__ == "__main__":
     Analysis.map_political(df=df_countries, df_mapping=df_mapping, show_cities=True, show_images=False,
                            hover_data=hover_data, save_file=True, save_final=True)
 
-    # # Amount of footage
-    # Analysis.scatter(df=df_countries,
-    #                  x="total_time",
-    #                  y="person",
-    #                  color="continent",
-    #                  text="iso3",
-    #                  xaxis_title='Total time of footage (s)',
-    #                  yaxis_title='Number of detected pedestrians',
-    #                  pretty_text=False,
-    #                  marker_size=10,
-    #                  save_file=True,
-    #                  hover_data=hover_data,
-    #                  hover_name="country",
-    #                  legend_title="",
-    #                  legend_x=0.01,
-    #                  legend_y=1.0,
-    #                  label_distance_factor=0.5,
-    #                  marginal_x=None,  # type: ignore
-    #                  marginal_y=None)  # type: ignore
+    # Amount of footage
+    Analysis.scatter(df=df_countries,
+                     x="total_time",
+                     y="person",
+                     color="continent",
+                     text="iso3",
+                     xaxis_title='Total time of footage (s)',
+                     yaxis_title='Number of detected pedestrians',
+                     pretty_text=False,
+                     marker_size=10,
+                     save_file=True,
+                     hover_data=hover_data,
+                     hover_name="country",
+                     legend_title="",
+                     legend_x=0.01,
+                     legend_y=1.0,
+                     label_distance_factor=0.5,
+                     marginal_x=None,  # type: ignore
+                     marginal_y=None)  # type: ignore
 
-    # Analysis.correlation_matrix(df_countries)
+    Analysis.correlation_matrix(df_countries)
 
-    # # Speed of crossing vs time to start crossing
-    # df = df_countries[df_countries["speed_crossing_avg"] != 0].copy()
-    # df = df[df["time_crossing_avg"] != 0]
-    # Analysis.scatter(df=df,
-    #                  x="speed_crossing_avg",
-    #                  y="time_crossing_avg",
-    #                  color="continent",
-    #                  text="iso3",
-    #                  xaxis_title='Mean speed of crossing (in m/s)',
-    #                  yaxis_title='Mean time to start crossing (in s)',
-    #                  pretty_text=False,
-    #                  marker_size=10,
-    #                  save_file=True,
-    #                  hover_data=hover_data,
-    #                  hover_name="country",
-    #                  legend_title="",
-    #                  legend_x=0.87,
-    #                  legend_y=1.0,
-    #                  label_distance_factor=0.5,
-    #                  marginal_x=None,  # type: ignore
-    #                  marginal_y=None)  # type: ignore
+    # Speed of crossing vs time to start crossing
+    df = df_countries[df_countries["speed_crossing_avg"] != 0].copy()
+    df = df[df["time_crossing_avg"] != 0]
+    Analysis.scatter(df=df,
+                     x="speed_crossing_avg",
+                     y="time_crossing_avg",
+                     color="continent",
+                     text="iso3",
+                     xaxis_title='Mean speed of crossing (in m/s)',
+                     yaxis_title='Mean time to start crossing (in s)',
+                     pretty_text=False,
+                     marker_size=10,
+                     save_file=True,
+                     hover_data=hover_data,
+                     hover_name="country",
+                     legend_title="",
+                     legend_x=0.87,
+                     legend_y=1.0,
+                     label_distance_factor=0.5,
+                     marginal_x=None,  # type: ignore
+                     marginal_y=None)  # type: ignore
 
     # # Exclude zero values before finding min
     # nonzero_speed = df_countries[df_countries["speed_crossing_avg"] > 0]
