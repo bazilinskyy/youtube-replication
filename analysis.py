@@ -3299,7 +3299,7 @@ class Analysis():
         #                 if all(pd.api.types.is_numeric_dtype(filtered_df[c]) for c in condition_cols):
         #                     agg_df[feature_name] = filtered_df[condition_cols].mean(axis=1)
         #                 else:
-        #                     print(f"Skipping non-numeric feature: {feature_name}")
+        #                     logger.debug(f"Skipping non-numeric feature: {feature_name}")
 
         #         else:
         #             agg_df[col] = filtered_df[col]
@@ -3709,12 +3709,13 @@ if __name__ == "__main__":
 
         logger.info("Loaded analysis results from pickle file.")
     else:
-        # Stores the mapping file
+        # Store the mapping file
         df_mapping = pd.read_csv(common.get_configs("mapping"))
         
-        # limit countries
+        # Limit countries if required
         countries_include = common.get_configs("countries_analyse")
-        df_mapping = df_mapping[df_mapping["iso3"].isin(common.get_configs("countries_analyse"))]
+        if countries_include:
+            df_mapping = df_mapping[df_mapping["iso3"].isin(common.get_configs("countries_analyse"))]
 
         pedestrian_crossing_count, data = {}, {}
         person_counter, bicycle_counter, car_counter, motorcycle_counter = 0, 0, 0, 0
