@@ -3,49 +3,100 @@
 ## Usage of the code
 The code is open-source and free to use. It is aimed for, but not limited to, academic research. We welcome forking of this repository, pull requests, and any contributions in the spirit of open science and open-source code 😍😄 For inquiries about collaboration, you may contact Pavlo Bazilinskyy (pavlo.bazilinskyy@gmail.com) or Md Shadab Alam (md_shadab_alam@outlook.com).
 
-## Getting Started
-Tested with Python 3.9.19. To setup the environment run these two commands in a parent folder of the downloaded repository (replace `/` with `\` and possibly add `--user` if on Windows:
+## Getting started
+[![Python Version](https://img.shields.io/badge/python-3.10.18-blue.svg)](https://www.python.org/downloads/release/python-3919/)
+[![Package Manager: uv](https://img.shields.io/badge/package%20manager-uv-green)](https://docs.astral.sh/uv/)
 
-**Step 1:**
+Tested with **Python 3.10.18** and the [`uv`](https://docs.astral.sh/uv/) package manager.
+Follow these steps to set up the project.
 
-Clone the repository
-```command line
-git clone https://github.com/bazilinskyy/youtube-replication
+**Step 1:** Install `uv`. `uv` is a fast Python package and environment manager. Install it using one of the following methods:
+
+**macOS / Linux (bash/zsh):**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-**Step 2:**
-
-Create a new virtual environment
-```command line
-python -m venv venv
+**Windows (PowerShell):**
+```powershell
+irm https://astral.sh/uv/install.ps1 | iex
 ```
 
-**Step 3:**
-
-Activate the virtual environment
-```command line
-source venv/bin/activate
+**Alternative (if you already have Python and pip):**
+```bash
+pip install uv
 ```
 
-On Windows use
-```command line
-venv\Scripts\activate
+**Step 2:** Fix permissions (if needed):
+
+Sometimes `uv` needs to create a folder under `~/.local/share/uv/python` (macOS/Linux) or `%LOCALAPPDATA%\uv\python` (Windows).
+If this folder was created by another tool (e.g. `sudo`), you may see an error like:
+```lua
+error: failed to create directory ... Permission denied (os error 13)
 ```
 
-**Step 4:**
+To fix it, ensure you own the directory:
 
-Install dependencies
-```command line
-pip install -r requirements.txt
+### macOS / Linux
+```bash
+mkdir -p ~/.local/share/uv
+chown -R "$(id -un)":"$(id -gn)" ~/.local/share/uv
+chmod -R u+rwX ~/.local/share/uv
 ```
 
-**Step 5:**
+### Windows
+```powershell
+# Create directory if it doesn't exist
+New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\uv"
 
-Ensure you have the required datasets in the data/ directory, including the mapping.csv file.
+# Ensure you (the current user) own it
+# (usually not needed, but if permissions are broken)
+icacls "$env:LOCALAPPDATA\uv" /grant "$($env:UserName):(OI)(CI)F"
+```
 
-**Step 6:**
+**Step 3:** After installing, verify:
+```bash
+uv --version
+```
 
-Run the code:
+**Step 4:** Clone the repository:
+```command line
+git clone https://github.com/bazilinskyy/youtube-replication.git
+cd youtube-replication
+```
+
+**Step 5:** Ensure correct Python version. If you don’t already have Python 3.10.18 installed, let `uv` fetch it:
+```command line
+uv python install 3.10.18
+```
+The repo should contain a .python-version file so `uv` will automatically use this version.
+
+**Step 6:** Create and sync the virtual environment. This will create **.venv** in the project folder and install dependencies exactly as locked in **uv.lock**:
+```command line
+uv sync --frozen
+```
+
+**Step 7:** Activate the virtual environment:
+
+**macOS / Linux (bash/zsh):**
+```bash
+source .venv/bin/activate
+```
+
+**Windows (PowerShell):**
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+**Windows (cmd.exe):**
+```bat
+.\.venv\Scripts\activate.bat
+```
+
+**Step 8:** Ensure that dataset are present. Place required datasets (including **mapping.csv**) into the **data/** directory:
+
+
+**Step 9:** Run the code:
 ```command line
 python3 analysis.py
 ```
@@ -65,10 +116,20 @@ Configuration of the project needs to be defined in `config`. Please use the `de
 - **`delete_youtube_video`**: Deletes saved YouTube videos.
 - **`compress_youtube_video`**: Compresses YouTube videos (using the H.255 codec by default).
 - **`delete_runs_files`**: Deletes files containing YOLO output after analysis.
-- **`monitor_temp`**: Monitors the temperature of the device running the analysis.
 - **`check_missing_mapping`**: Identifies all the missing csv files.
+- **`min_max_videos`**: Gives snippets of the fastest and slowest crossing pedestrian.
+- **`track_buffer_sec`**: Keep tracks longer (in seconds).
+- **`analysis_level`**: Specifies the analysis level; supported versions include `city` and `country`.
 - **`client`**: Specifies the client type for downloading YouTube videos; accepted values are `"WEB"`, `"ANDROID"` or `"ios"`.
 - **`model`**: Specifies the YOLO model to use; supported/tested versions include `v8x` and `v11x`.
+- **`boundary_left`**: Specifies the x-coordinate of one edge of the crossing area used to detect road crossings (normalised between 0 and 1).
+- **`boundary_right`**: Specifies the x-coordinate of the opposite edge of the crossing area used to detect road crossings (normalised between 0 and 1).
+- **`use_geometry_correction`**: Specifies the distance threshold for applying geometry correction. If set to 0, geometry correction is skipped.
+- **`population_threshold`**: Specifies the minimum population a city must have to be included in the analysis.
+- **`footage_threshold`**: Specifies the minimum amount of footage required for a city to be included in the analysis.
+- **`min_city_population_percentage`**: Specifies the minimum proportion of a country’s population that a city must have to be included in the analysis.
+- **`min_speed`**: Specifies the minimum speed limit for pedestrian crossings to be included in the analysis.
+- **`max_speed`**: Specifies the maximum speed limit for pedestrian crossings to be included in the analysis.
 - **`countries_analyse`**: Lists the countries to be analysed.
 - **`confidence`**: Sets the confidence threshold parameter for YOLO.
 - **`update_ISO_code`**: Updates the ISO code of the country in the mapping file during analysis.
@@ -83,32 +144,16 @@ Configuration of the project needs to be defined in `config`. Please use the `de
 - **`font_size`**: Specifies the font size to be used in outputs.
 - **`plotly_template`**: Defines the template for Plotly figures.
 - **`logger_level`**: Level of console output. Can be: debug, info, warning, error.
-- **`sleep_sec`**: Amount of seconds of pause between going over the mapping files.
+- **`sleep_sec`**: Amount of seconds of pause in the end of the loop in `main.py`.
+- **`git_pull`**: Pull changes from git repository in the end of the loop in `main.py`.
+- **`email_send`**: Send email about completion of the job in the end of the loop in `main.py`. See the following paragraph for the additional parameters in the `secret` file.
+- **`email_sender`**: Email address of the the "sender" of the email.
+- **`email_recipients`**: List of emails for sending the message.
 
-## Description and analysis of dataset
-### Description of dataset
-[![Locations of cities with footage in dataset](figures/map.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/map.html)
-The 11 countries with dashcam footage included in analysis on the political map (coloured by continent). Black dots show the cities included.
-
-[![Total time of footage over number of detected pedestrians](figures/scatter_total_time-person.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/scatter_total_time-person.html)
-Total time of footage over number of detected pedestrians.
-
-### Relationship between computed and statistical metrics
-[![Speed of crossing over crossing decision time](figures/scatter_speed_crossing_avg-time_crossing_avg.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/scatter_speed_crossing_avg-time_crossing_avg.html)
-Mean speed of crossing (in m/s) over Mean time to start crossing (in s) (in s).
-
-### Correlation matrices
-[![Correlation matrix based on average speed and time to start cross](figures/correlation_matrix_heatmap_averaged.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-replication/blob/main/figures/correlation_matrix_heatmap_averaged.html)
-Correlation matrix.
-
-[![Correlation matrix at daytime](figures/correlation_matrix_heatmap_day.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-national/blob/main/figures/correlation_matrix_heatmap_day.html)
-Correlation matrix at daytime.
-
-[![Correlation matrix at night time](figures/correlation_matrix_heatmap_night.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/youtube-national/blob/main/figures/correlation_matrix_heatmap_night.html)
-Correlation matrix at night time.
+For working with external APIs of [VideoFiles](https://files.mobility-squad.com/), [GeoNames](https://www.geonames.org), [BEA](https://apps.bea.gov/api/signup), [TomTom](https://developer.tomtom.com/user/register), [Trafikab](https://www.trafiklab.se/api/trafiklab-apis), and [Numbeo](https://www.numbeo.com/common/api.jsp) (paid), the API keys need to be placed in file `secret` (no extension) in the root of the project. The file needs to be formatted as `default.secret`. The email SMTP server, account and password need to be also set here. This is optional for just running the analysis on the dataset. For running the the `main.py` script at least an empty `secret` file directly copies from the template is required.
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Contact
-If you have any questions or suggestions, feel free to reach out to pavlo.bazilinskyy@gmail.com.
+If you have any questions or suggestions, feel free to reach out to md_shadab_alam@outlook.com or pavlo.bazilinskyy@gmail.com.
